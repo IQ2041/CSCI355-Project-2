@@ -1,47 +1,85 @@
 /*Script for diplaying card questions questions are in a JSON format 
 Will go through these questions to find the correct answer*/
-const questions = [
-    {
-        "question": "A flashing red traffic light signifies that a driver should do what?",
-        "A": "stop",
-        "B": "speed up",
-        "C": "proceed with caution",
-        "D": "honk the horn",
-        "answer": "A"
-    },
 
-    {
-        "question": "A knish is traditionally stuffed with what filling?",
-        "A": "potato",
-        "B": "creamed corn",
-        "C": "lemon custard",
-        "D": "raspberry jelly",
-        "answer": "A"
 
-    },
+let questions = [];
+let allQuizQuestionsData = [];
+let currentQ = 0;//Starts the questions from the beginning of the array.
+const questionJsonPath = './questions.json';
 
-    {
-        "question": "A pita is a type of what?",
-        "A": "fresh fruit",
-        "B": "flat bread",
-        "C": "French tart",
-        "D": "friend bean dip",
-        "answer": "B"
-    },
+//Write a function the from the array give me a random 10 question. 
+async function loadQuestions(jsonFile) {
+    try{
+        const response = await fetch(jsonFile);
+        if(!response.ok){
+            throw new Error(`HTTP error, status ${response.status}`);
+        }
+        allQuizQuestionsData = await response.json();
+        console.log(`Total questions loaded ${allQuizQuestionsData.length}`);
+        return allQuizQuestionsData;
+    }catch(error){
+        console.error('Error loading questions');
+        return [];
+    }
+}
 
-    {
-        "question": "A portrait that comically exaggerates a person's physical traits is called a what?",
-        "A": "landscape",
-        "B": "caricature",
-        "C": "still life",
-        "D": "Impressionism",
-        "answer": "B"
+//Function to select a random question
+function selectRendomQuestions(questionArray, count = 10){
+    if(questionArray.length == 0){
+        console.error('No questions left');
+        return [];
     }
 
-]
+    if(questionArray.length < count ){
+        return [...questionArray];//Using spread operator to read through the question array.
+    }
 
-//Starts the questions from the beginning of the array.
-let currentQ = 0;
+    const shuffledQuestions = [...questionArray];
+
+    for (let i = shuffledQuestions.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledQuestions[i],shuffledQuestions[j]] = [shuffledQuestions[j], shuffledQuestions[i]]
+    }
+    
+    return shuffledQuestions.slice(0,count);//returns the first count question
+}
+
+async function initializeQuiz(jsonFilePath) {
+    //Loding all questions from JSON
+    const allQuestions = await loadQuestions(jsonFilePath);
+    
+    if(allQuestions.length == 0){
+        console.error('Failed to load questions.');
+        return false;
+    }
+    
+    questions = selectRendomQuestions(allQuestions,10);
+    console.log('Question selected ', questions);//Used to test if the question in terminal matched output onscreen.
+
+    currentQ = 0;//reset index 
+
+    if(questions.length > 0){
+        displayQuestion()
+        return true;
+    }
+    return false;
+}
+
+
+function initializeQuizWithData(jsonData) {
+    allQuestionsData = jsonData;
+    questions = getRandomQuestions(allQuestionsData, 10);
+    console.log('Selected questions for quiz:', questions);
+    
+    currentQ = 0;
+    
+    if (questions.length > 0) {
+        displayQuestion();
+        return true;
+    }
+    
+    return false;
+}
 
 function displayQuestion() {
     //Creating the question text.
@@ -134,7 +172,7 @@ function selectAnswer(selectedOption, correctAnswer) {
 //Used to confirm that the page is fully loaded before calling displayQuestion function
 window.addEventListener('DOMContentLoaded', function(){
     console.log("The DOM is loaded");
-    displayQuestion()
+    initializeQuiz(questionJsonPath);
 });
 
 
@@ -179,5 +217,15 @@ function guestRestrictedFeatures(){
     const leaderboardLink = document.querySelector('a[href*="Leaderboard"]');
     if(leaderboardLink){
         leaderboardLink.style.display = 'none';
+    }
+}
+
+function restartQuiz(){
+    if(allQuizQuestionsData.length == 0){
+        questions = selectRendomQuestions(allQuizQuestionsData,10);
+        currentQ = 0;
+        displayQuestion();
+    }else{
+        initializeQuiz(questionJsonPath);
     }
 }
